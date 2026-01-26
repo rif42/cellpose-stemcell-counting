@@ -515,6 +515,14 @@ class MainW(QMainWindow):
         self.progress = QProgressBar(self)
         self.segBoxG.addWidget(self.progress, widget_row, 4, 1, 5)
 
+        # Confluency display label
+        widget_row += 1
+        self.confluency_label = QLabel()
+        self.confluency_label.setFont(self.medfont)
+        self.confluency_label.setAlignment(QtCore.Qt.AlignLeft)
+        self.confluency_label.setStyleSheet("color: #00FF00;")
+        self.segBoxG.addWidget(self.confluency_label, widget_row, 0, 1, 9)
+
         widget_row += 1
 
         ############################### Segmentation settings ###############################
@@ -949,6 +957,8 @@ class MainW(QMainWindow):
         self.stroke_appended = True
         self.resize = False
         self.ncells.reset()
+        if hasattr(self, 'confluency_label'):
+            self.confluency_label.setText("")
         self.zdraw = []
         self.removed_cell = []
         self.cellcolors = np.array([255, 255, 255])[np.newaxis, :]
@@ -1886,6 +1896,18 @@ class MainW(QMainWindow):
             io._masks_to_gui(self, maski, outlines=None)
             self.show()
 
+    def calculate_confluency(self, cellprob_map, cellprob_threshold):
+        # Handle multi-dimensional arrays (e.g., z-stacks)
+        if cellprob_map.ndim > 2:
+            cellprob_flat = cellprob_map.flatten()
+        else:
+            cellprob_flat = cellprob_map
+        
+        binary_mask = cellprob_flat > cellprob_threshold
+        cell_pixels = np.sum(binary_mask)
+        total_pixels = cellprob_flat.size
+        confluency = (cell_pixels / total_pixels) * 100
+        return confluency
 
     def compute_segmentation(self, custom=False, model_name=None, load_model=True):
         self.progress.setValue(0)
@@ -1996,6 +2018,12 @@ class MainW(QMainWindow):
             io._masks_to_gui(self, masks, outlines=None)
             self.masksOn = True
             self.MCheckBox.setChecked(True)
+            
+            # Calculate and display confluency
+            if len(self.flows) > 3:
+                cellprob_map = self.flows[3]  # Original cellprob (logits)
+                confluency = self.calculate_confluency(cellprob_map, cellprob_threshold)
+                self.confluency_label.setText(f"Confluency: {confluency:.1f}%")
             self.progress.setValue(100)
             if self.restore != "filter" and self.restore is not None and self.autobtn.isChecked():
                 self.compute_saturation()
