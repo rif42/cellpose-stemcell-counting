@@ -1,15 +1,6 @@
 # <p>  <b>Cellpose </b> </p>
 <img src="http://www.cellpose.org/static/images/logo.png?raw=True" width="250" title="cellpose" alt="cellpose" align="right" vspace = "50">
 
-# Installation Steps
-
-1. tekan tombol `windows + X`
-2. tekan huruf `A`
-3. copy paste `Set-ExecutionPolicy RemoteSigned` ke shell
-4. tekan `enter`
-5. tutup powershell
-6. double klik file `install.ps1` atau right click `install.ps1`, lalu klik `run with PowerShell`
-
 [![Documentation Status](https://readthedocs.org/projects/cellpose/badge/?version=latest)](https://cellpose.readthedocs.io/en/latest/?badge=latest)
 ![tests](https://github.com/mouseland/cellpose/actions/workflows/test_and_deploy.yml/badge.svg)
 [![codecov](https://codecov.io/gh/MouseLand/cellpose/branch/main/graph/badge.svg?token=9FFo4zNtYP)](https://codecov.io/gh/MouseLand/cellpose)
