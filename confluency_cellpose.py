@@ -26,7 +26,7 @@ from matplotlib.colors import LinearSegmentedColormap
 from cellpose import models, io
 
 # Import CLAHE function from the local module
-from CLAHE import apply_clahe
+from CLAHE import apply_clahe, optimize_clahe_parameters
 
 
 def sigmoid(x):
@@ -55,7 +55,7 @@ def get_probability_map(cellprob_logits):
     return sigmoid(cellprob_logits)
 
 
-def apply_clahe_to_image(img, clip_limit=2.0, tile_grid_size=(8, 8)):
+def apply_clahe_to_image(img, clip_limit=5.0, tile_grid_size=(8, 8), auto_optimize=False):
     """
     Apply CLAHE (Contrast Limited Adaptive Histogram Equalization) to an image.
     
@@ -74,10 +74,15 @@ def apply_clahe_to_image(img, clip_limit=2.0, tile_grid_size=(8, 8)):
         img_gray = img
     
     # Create CLAHE object and apply
+    if auto_optimize:
+        print("  Running automatic CLAHE parameter optimization...")
+        clip_limit, tile_grid_size = optimize_clahe_parameters(img_gray)
+        print(f"  Result: Clip Limit={clip_limit:.2f}, Grid Size={tile_grid_size}")
+    
     clahe = cv2.createCLAHE(clipLimit=clip_limit, tileGridSize=tile_grid_size)
     img_clahe = clahe.apply(img_gray)
     
-    return img_clahe
+    return img_clahe, clip_limit, tile_grid_size
 
 
 def calculate_confluency(
@@ -90,8 +95,9 @@ def calculate_confluency(
     use_gpu: bool = True,
     save_outputs: bool = True,
     output_dir: str = None,
-    clahe_clip_limit: float = 2.0,
-    clahe_tile_grid_size: tuple = (8, 8)
+    clahe_clip_limit: float = 5.0,
+    clahe_tile_grid_size: tuple = (8, 8),
+    auto_clahe: bool = False
 ) -> dict:
     """
     Calculate cell confluency from an image using Cellpose.
@@ -163,8 +169,11 @@ def calculate_confluency(
     print("STEP 2: Applying CLAHE Preprocessing")
     print(f"{'='*60}")
     
-    img_clahe = apply_clahe_to_image(img, clahe_clip_limit, clahe_tile_grid_size)
-    print(f"CLAHE parameters: clip_limit={clahe_clip_limit}, tile_grid_size={clahe_tile_grid_size}")
+    img_clahe, used_clip_limit, used_tile_grid_size = apply_clahe_to_image(img, clahe_clip_limit, clahe_tile_grid_size, auto_clahe)
+    if auto_clahe:
+        print(f"CLAHE parameters: OPTIMIZED (CL={used_clip_limit:.2f}, Grid={used_tile_grid_size})")
+    else:
+        print(f"CLAHE parameters: clip_limit={used_clip_limit}, tile_grid_size={used_tile_grid_size}")
     print("CLAHE preprocessing complete")
     
     # Use CLAHE-processed image for Cellpose
@@ -266,7 +275,8 @@ def calculate_confluency(
         # Add overall title with results
         fig.suptitle(f'Cell Confluency Analysis Pipeline\n'
                      f'Model: {model_name} | Diameter: {diameter} | '
-                     f'Threshold: {cellprob_threshold}',
+                     f'Threshold: {cellprob_threshold}\n'
+                     f'CLAHE: CL={used_clip_limit:.2f} | Grid={used_tile_grid_size}',
                      fontsize=14, fontweight='bold', y=0.98)
         
         plt.tight_layout()
@@ -337,10 +347,15 @@ if __name__ == "__main__":
         help='Number of flow dynamics iterations (default: 2000)'
     )
     parser.add_argument(
-        '--clahe_clip',
+        '--clip_limit',
         type=float,
         default=2.0,
         help='CLAHE clip limit (default: 2.0)'
+    )
+    parser.add_argument(
+        '--auto-clahe',
+        action='store_true',
+        help='Automatically determine optimal CLAHE parameters based on image entropy'
     )
     parser.add_argument(
         '--output_dir', '-o',
@@ -377,7 +392,8 @@ if __name__ == "__main__":
         use_gpu=not args.cpu,
         save_outputs=not args.no_save,
         output_dir=args.output_dir,
-        clahe_clip_limit=args.clahe_clip
+        clahe_clip_limit=args.clip_limit,
+        auto_clahe=args.auto_clahe
     )
     
     print(f"\n{'#'*60}")

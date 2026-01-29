@@ -485,7 +485,16 @@ class MainW(QMainWindow):
         )
         self.useGPU.setFont(self.medfont)
         self.check_gpu()
-        self.segBoxG.addWidget(self.useGPU, widget_row, 0, 1, 3)
+        self.segBoxG.addWidget(self.useGPU, widget_row, 0, 1, 2)
+
+        # use DirectML (for AMD/Intel GPUs on Windows)
+        self.useDirectML = QCheckBox("DirectML")
+        self.useDirectML.setToolTip(
+            "Use DirectML for AMD/Intel GPUs on Windows (requires torch-directml)"
+        )
+        self.useDirectML.setFont(self.medfont)
+        self.check_directml()
+        self.segBoxG.addWidget(self.useDirectML, widget_row, 2, 1, 2)
 
         # compute segmentation with general models
         self.net_text = ["run CPSAM"]
@@ -756,6 +765,16 @@ class MainW(QMainWindow):
             self.useGPU.setChecked(True)
         else:
             self.useGPU.setStyleSheet("color: rgb(80,80,80);")
+
+    def check_directml(self):
+        """Check if DirectML is available."""
+        self.useDirectML.setChecked(False)
+        self.useDirectML.setEnabled(False)
+        try:
+            import torch_directml
+            self.useDirectML.setEnabled(True)
+        except:
+            self.useDirectML.setStyleSheet("color: rgb(80,80,80);")
 
 
     def model_choose(self, custom=False):
@@ -1792,6 +1811,16 @@ class MainW(QMainWindow):
 
             self.model = models.CellposeModel(gpu=self.useGPU.isChecked(),
                                              pretrained_model=self.current_model)
+        
+        # Apply DirectML if selected
+        if hasattr(self, 'useDirectML') and self.useDirectML.isChecked():
+            try:
+                from .contrib.directml import setup_directML, fix_sparse_directML
+                self.model = setup_directML(self.model)
+                fix_sparse_directML(verbose=False)
+                print("GUI_INFO: DirectML enabled for this model")
+            except Exception as e:
+                print(f"GUI_WARNING: Failed to enable DirectML: {e}")
 
     def add_model(self):
         io._add_model(self)

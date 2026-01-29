@@ -23,7 +23,8 @@ def batch_process_confluency(
     cellprob_threshold: float = -1,
     niter: int = 2000,
     use_gpu: bool = True,
-    clahe_clip_limit: float = 2.0
+    clahe_clip_limit: float = 2.0,
+    auto_clahe: bool = False
 ):
     """
     Process all images in a directory and calculate confluency.
@@ -38,6 +39,7 @@ def batch_process_confluency(
         niter: Number of flow iterations
         use_gpu: Whether to use GPU
         clahe_clip_limit: CLAHE clip limit for preprocessing
+        auto_clahe: Whether to use automatic parameter optimization
     
     Returns:
         List of result dictionaries
@@ -70,6 +72,7 @@ def batch_process_confluency(
     print(f"Diameter: {diameter}")
     print(f"Cell probability threshold: {cellprob_threshold}")
     print(f"CLAHE clip limit: {clahe_clip_limit}")
+    print(f"Auto-CLAHE Optimization: {auto_clahe}")
     print(f"{'='*70}\n")
     
     # Process each image
@@ -92,7 +95,8 @@ def batch_process_confluency(
                 use_gpu=use_gpu,
                 save_outputs=True,
                 output_dir=output_dir,
-                clahe_clip_limit=clahe_clip_limit
+                clahe_clip_limit=clahe_clip_limit,
+                auto_clahe=auto_clahe
             )
             
             results.append({
@@ -187,10 +191,15 @@ if __name__ == "__main__":
         help='Cell probability threshold in logits (default: -1)'
     )
     parser.add_argument(
-        '--clahe_clip',
+        '--clip_limit',
         type=float,
         default=2.0,
         help='CLAHE clip limit (default: 2.0)'
+    )
+    parser.add_argument(
+        '--auto-clahe',
+        action='store_true',
+        help='Automatically determine optimal CLAHE parameters based on image entropy'
     )
     parser.add_argument(
         '--cpu',
@@ -212,5 +221,6 @@ if __name__ == "__main__":
         flow_threshold=args.flow_threshold,
         cellprob_threshold=args.cellprob_threshold,
         use_gpu=not args.cpu,
-        clahe_clip_limit=args.clahe_clip
+        clahe_clip_limit=args.clip_limit,
+        auto_clahe=args.auto_clahe
     )

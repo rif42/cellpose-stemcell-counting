@@ -61,6 +61,23 @@ def _use_gpu_torch(gpu_number=0):
         return False
 
 
+def _use_directml():
+    """
+    Check if DirectML is available for GPU acceleration on Windows.
+    
+    Returns:
+        bool: True if DirectML is available and working, False otherwise.
+    """
+    try:
+        import torch_directml
+        device = torch_directml.device()
+        _ = torch.zeros((1,1)).to(device)
+        core_logger.info("** DirectML available and working. **")
+        return True
+    except:
+        return False
+
+
 def assign_device(use_torch=True, gpu=False, device=0):
     """
     Assigns the device (CPU or GPU or mps) to be used for computation.
