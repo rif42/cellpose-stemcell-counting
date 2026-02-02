@@ -232,15 +232,23 @@ echo [2/6] Checking Python installation...
 python --version >nul 2>&1
 if %errorlevel% neq 0 (
     echo       Python not found. Installing Python 3.12 via winget...
+    echo.
+    echo       ================================================
+    echo       IMPORTANT: Python installer window will open.
+    echo       Please complete the installation in that window,
+    echo       then return here and press any key to continue.
+    echo       ================================================
+    echo.
+    
     winget install -e --id Python.Python.3.12 --source winget --accept-package-agreements --accept-source-agreements
-    if %errorlevel% neq 0 (
-        echo       ERROR: Failed to install Python via winget.
-        echo       Please install Python 3.12 manually from: https://www.python.org/downloads/
-        pause
-        exit /b 1
-    )
+    
+    :: Wait for user to complete installation in the GUI
+    echo.
+    echo       Waiting for Python installation to complete...
+    pause
     
     :: Refresh environment to pick up new Python
+    echo.
     echo       Refreshing environment variables...
     for /f "delims=" %%a in ('"C:\Windows\System32\wbem\wmic.exe" path Win32_VideoController get PNPDeviceID /value 2^>nul ^| find "PCI"') do set "DUMMY=%%a"
     call :RefreshEnv
@@ -266,15 +274,23 @@ echo [3/6] Checking Git installation...
 git --version >nul 2>&1
 if %errorlevel% neq 0 (
     echo       Git not found. Installing via winget...
+    echo.
+    echo       ================================================
+    echo       IMPORTANT: Git installer window will open.
+    echo       Please complete the installation in that window,
+    echo       then return here and press any key to continue.
+    echo       ================================================
+    echo.
+    
     winget install -e --id Git.Git --source winget --accept-package-agreements --accept-source-agreements
-    if %errorlevel% neq 0 (
-        echo       ERROR: Failed to install Git via winget.
-        echo       Please install Git manually from: https://git-scm.com/download/win
-        pause
-        exit /b 1
-    )
+    
+    :: Wait for user to complete installation in the GUI
+    echo.
+    echo       Waiting for Git installation to complete...
+    pause
     
     :: Refresh environment
+    echo.
     echo       Refreshing environment variables...
     call :RefreshEnv
     
