@@ -162,12 +162,65 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
+echo       Attempting download with strict SSL verification...
 curl -L -o "%VS_INSTALLER%" "https://aka.ms/vs/17/release/vs_buildtools.exe" --silent --show-error --retry 3 --connect-timeout 30
+
 if %errorlevel% neq 0 (
-    echo       ERROR: Failed to download VS Build Tools.
-    echo       Please install manually from: https://visualstudio.microsoft.com/visual-cpp-build-tools/
-    pause
-    exit /b 1
+    echo       Strict SSL verification failed. Retrying with relaxed SSL settings...
+    echo       (This is common on fresh Windows installs before certificates are updated)
+    curl -L -o "%VS_INSTALLER%" "https://aka.ms/vs/17/release/vs_buildtools.exe" --silent --show-error --retry 3 --connect-timeout 30 --ssl-revoke-best-effort
+    
+    if %errorlevel% neq 0 (
+        echo       SSL revocation check still failing. Trying without certificate validation...
+        curl -L -o "%VS_INSTALLER%" "https://aka.ms/vs/17/release/vs_buildtools.exe" --silent --show-error --retry 3 --connect-timeout 30 --insecure
+        
+        if %errorlevel% neq 0 (
+            echo.
+            echo       ================================================
+            echo       ERROR: All download attempts failed.
+            echo       ================================================
+            echo.
+            echo       This usually happens on fresh Windows 11 installs when:
+            echo       - System time is not synchronized
+            echo       - Root certificates are not yet updated
+            echo       - Corporate firewall/proxy blocks downloads
+            echo.
+            echo       Please try one of these solutions:
+            echo.
+            echo       OPTION 1 - Fix system time and retry:
+            echo         1. Right-click clock in taskbar -^> Adjust date/time
+            echo         2. Toggle "Set time automatically" OFF then ON
+            echo         3. Click "Sync now"
+            echo         4. Run this script again
+            echo.
+            echo       OPTION 2 - Manual download:
+            echo         1. Open browser and download:
+            echo            https://aka.ms/vs/17/release/vs_buildtools.exe
+            echo         2. Save it to: %TEMP%\vs_buildtools.exe
+            echo         3. Run this script again
+            echo.
+            echo       OPTION 3 - Skip VS Build Tools (not recommended):
+            echo         Some Python packages may fail to install without C++ tools.
+            echo         You can continue and hope pip finds pre-built wheels.
+            echo.
+            echo       ================================================
+            echo.
+            set /p CONTINUE="Would you like to skip VS Build Tools installation? (y/n): "
+            if /i "!CONTINUE!"=="y" (
+                echo       Skipping VS Build Tools. Some packages may fail later.
+                goto :VS_DONE
+            ) else (
+                echo       Please fix the issue and run the script again.
+                pause
+                exit /b 1
+            )
+        ) else (
+            echo       Downloaded successfully (using relaxed SSL verification).
+            echo       Note: Your system certificates may need updating.
+        )
+    ) else (
+        echo       Downloaded successfully (using best-effort SSL revocation check).
+    )
 )
 
 :: Verify download
